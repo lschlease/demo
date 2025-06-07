@@ -1,0 +1,19 @@
+{
+  "name": "vue3-pixi-realtime-chart",
+  "version": "1.0.0",
+  "description": "基于Vue3和PIXI.js的实时折线图项目",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview"
+  },
+  "dependencies": {
+    "vue": "^3.3.4",
+    "pixi.js": "^7.3.2"
+  },
+  "devDependencies": {
+    "@vitejs/plugin-vue": "^4.3.4",
+    "vite": "^4.4.9"
+  }
+} 
