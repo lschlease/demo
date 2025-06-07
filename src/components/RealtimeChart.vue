@@ -25,7 +25,7 @@ export default {
     const dataPoints = ref([])
     const isGenerating = ref(false)
     const currentValue = ref(0)
-    const updateInterval = ref(1000)
+    const updateInterval = ref(2000)
     let generationTimer = null
 
     // 图表配置
@@ -35,21 +35,23 @@ export default {
       lineColor: 0x00D2FF,
       lineWidth: 1,
       pointColor: 0xFF6B6B,
-      maxDataPoints: 60
+      maxDataPoints: 150
     })
 
     // 初始化数据生成器
     const initDataGenerator = () => {
       dataGenerator.value = new DataGenerator({
         mode: 'sineWave',
-        baseValue: 50,
-        amplitude: 25,
-        frequency: 0.02,
-        noiseLevel: 3
+        baseValue: 40,    // 调整基准值到0-80的中点
+        amplitude: 35,    // 大幅增加振幅，让数据能覆盖0-80范围
+        frequency: 0.02,  // 降低频率，让波动更缓慢明显
+        noiseLevel: 8     // 增加噪声，让变化更随机
       })
 
       // 监听数据更新
       dataGenerator.value.onDataUpdate((dataPoint) => {
+        // 不再限制数据范围，让数据自由波动
+        
         dataPoints.value.push(dataPoint)
         currentValue.value = dataPoint.value
         
@@ -103,10 +105,8 @@ export default {
       // 监听窗口大小变化
       window.addEventListener('resize', updateChartSize)
       
-      // 自动开始生成数据
-      setTimeout(() => {
-        startGeneration()
-      }, 500)
+      // 立即开始生成数据，无延迟
+      startGeneration()
     })
 
     onUnmounted(() => {

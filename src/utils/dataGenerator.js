@@ -7,8 +7,8 @@ export class DataGenerator {
     this.mode = options.mode || 'sineWave' // 'sineWave', 'randomWalk', 'trend'
     this.baseValue = options.baseValue || 50
     this.amplitude = options.amplitude || 30
-    this.frequency = options.frequency || 0.01
-    this.noiseLevel = options.noiseLevel || 5
+    this.frequency = options.frequency || 0.03 // 适中的频率
+    this.noiseLevel = options.noiseLevel || 5 // 增加噪声，让变化更明显
     this.trend = options.trend || 0.02
     
     this.time = 0
@@ -41,7 +41,7 @@ export class DataGenerator {
         break
         
       case 'randomWalk':
-        const change = (Math.random() - 0.5) * 4
+        const change = (Math.random() - 0.5) * 6  // 增加随机游走的变化幅度
         this.lastValue += change
         // 防止值过度偏离基准值
         if (this.lastValue > this.baseValue + this.amplitude) {
@@ -55,7 +55,7 @@ export class DataGenerator {
       case 'trend':
         value = this.baseValue + 
                 this.time * this.trend +
-                Math.sin(this.time * this.frequency * 3) * (this.amplitude * 0.3) +
+                Math.sin(this.time * this.frequency * 3) * (this.amplitude * 0.5) +
                 (Math.random() - 0.5) * this.noiseLevel
         break
         
@@ -65,7 +65,7 @@ export class DataGenerator {
 
     const dataPoint = {
       time: Date.now(),
-      value: Math.max(0, Math.min(100, value)), // 限制在0-100范围内
+      value: value, // 不再限制范围，让数据自由波动
       timestamp: this.time
     }
 

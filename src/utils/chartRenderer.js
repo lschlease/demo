@@ -11,7 +11,7 @@ export class ChartRenderer {
     this.width = options.width || 800
     this.height = options.height || 400
     this.padding = options.padding || { top: 20, right: 20, bottom: 60, left: 60 }
-    this.maxDataPoints = options.maxDataPoints || 50
+    this.maxDataPoints = options.maxDataPoints || 150
     
     // 图表配置
     this.lineColor = options.lineColor || 0x00D2FF
@@ -32,9 +32,9 @@ export class ChartRenderer {
       height: this.height - this.padding.top - this.padding.bottom
     }
     
-    // 数据范围
+    // 数据范围 - 动态调整
     this.valueRange = { min: 0, max: 100 }
-    this.timeRange = { start: Date.now(), duration: 60000 } // 显示60秒的数据
+    this.timeRange = { start: Date.now(), duration: 30000 } // 显示30秒的数据，更密集
     
     this.init()
   }
@@ -72,9 +72,9 @@ export class ChartRenderer {
     this.pulseAnimation = new PulseAnimation({
       period: 2500,
       minOpacity: 0.4,
-      maxOpacity: 0.9,
-      minScale: 1.0,
-      maxScale: 1.8
+      maxOpacity: 0.8,
+      minScale: 0.8,     // 减小最小缩放
+      maxScale: 1.3      // 减小最大缩放，让端点更小
     })
 
     // 初始化图表元素
@@ -134,12 +134,12 @@ export class ChartRenderer {
   drawAxes() {
     this.textLayer.removeChildren()
 
-    // Y轴标签
+    // Y轴标签 - 根据当前数据范围动态调整
     for (let i = 0; i <= 5; i++) {
-      const value = this.valueRange.min + (this.valueRange.max - this.valueRange.min) * (1 - i / 5)
+      const value = this.valueRange.max - ((this.valueRange.max - this.valueRange.min) / 5) * i
       const y = this.chartArea.y + (this.chartArea.height / 5) * i
       
-      const text = new PIXI.Text(value.toFixed(0), {
+      const text = new PIXI.Text(value.toFixed(1), {
         fontSize: 12,
         fill: this.textColor,
         fontFamily: 'Arial'
@@ -154,15 +154,20 @@ export class ChartRenderer {
     this.updateTimeLabels()
   }
 
-  // 更新时间标签
+  // 更新时间标签 - 当前时间在四分之三处
   updateTimeLabels() {
     // 移除旧的时间标签
     this.textLayer.children = this.textLayer.children.filter(child => !child.isTimeLabel)
 
-    const now = Date.now()
+    // 使用实际的时间范围
+    const startTime = this.timeRange.start
+    const endTime = this.timeRange.end || (this.timeRange.start + this.timeRange.duration)
+    const timeSpan = endTime - startTime
+    
     for (let i = 0; i <= 5; i++) {
-      const timeOffset = (this.timeRange.duration / 5) * (5 - i)
-      const time = new Date(now - timeOffset)
+      // 计算每个刻度对应的时间
+      const timeAtPosition = startTime + (timeSpan / 5) * i
+      const time = new Date(timeAtPosition)
       const x = this.chartArea.x + (this.chartArea.width / 5) * i
       
       const text = new PIXI.Text(this.formatTime(time), {
@@ -196,13 +201,16 @@ export class ChartRenderer {
       this.dataPoints.shift()
     }
 
-    // 更新时间范围
+    // 更新时间范围 - 确保当前时间在四分之三处
     if (this.dataPoints.length > 0) {
       const latestTime = this.dataPoints[this.dataPoints.length - 1].time
-      this.timeRange.start = latestTime - this.timeRange.duration
+      const timeSpan = this.timeRange.duration
+      // 调整时间范围，确保最新数据在四分之三处显示
+      this.timeRange.start = latestTime - timeSpan * 0.75
+      this.timeRange.end = latestTime + timeSpan * 0.25
     }
 
-    // 自动调整值范围
+    // 恢复自动调整值范围
     this.updateValueRange()
     
     // 添加动画
@@ -216,10 +224,10 @@ export class ChartRenderer {
     const values = this.dataPoints.map(p => p.value)
     const min = Math.min(...values)
     const max = Math.max(...values)
-    const padding = (max - min) * 0.1 || 5
+    const padding = (max - min) * 0.1 || 10 // 增加一些边距
 
-    this.valueRange.min = Math.max(0, min - padding)
-    this.valueRange.max = Math.min(100, max + padding)
+    this.valueRange.min = min - padding
+    this.valueRange.max = max + padding
   }
 
   // 动画添加新点
@@ -252,10 +260,16 @@ export class ChartRenderer {
 
   // 数据坐标转屏幕坐标
   dataToScreen(dataPoint) {
+    // 确保使用正确的时间范围
+    const timeRange = this.timeRange.end ? 
+      (this.timeRange.end - this.timeRange.start) : 
+      this.timeRange.duration
+
     const x = this.chartArea.x + 
-              ((dataPoint.time - this.timeRange.start) / this.timeRange.duration) * 
+              ((dataPoint.time - this.timeRange.start) / timeRange) * 
               this.chartArea.width
 
+    // 使用动态范围映射
     const y = this.chartArea.y + this.chartArea.height - 
               ((dataPoint.value - this.valueRange.min) / 
                (this.valueRange.max - this.valueRange.min)) * this.chartArea.height
@@ -274,18 +288,38 @@ export class ChartRenderer {
       this.updateTimeLabels()
     }
 
-    // 过滤可见数据点
-    const now = Date.now()
-    const visiblePoints = this.dataPoints.filter(p => 
-      p.time >= now - this.timeRange.duration
+    // 过滤可见数据点 - 修复时间范围逻辑
+    if (this.dataPoints.length === 0) return
+
+    // 确保时间范围正确
+    const latestTime = this.dataPoints[this.dataPoints.length - 1].time
+    const timeSpan = this.timeRange.duration
+    const startTime = latestTime - timeSpan * 0.75
+    const endTime = latestTime + timeSpan * 0.25
+    
+    // 更新时间范围对象
+    this.timeRange.start = startTime
+    this.timeRange.end = endTime
+    
+    // 获取所有在时间范围内的数据点
+    let visiblePoints = this.dataPoints.filter(p => 
+      p.time >= startTime && p.time <= endTime
     )
 
+    // 如果数据点少于2个，使用所有可用数据点
+    if (visiblePoints.length < 2) {
+      visiblePoints = this.dataPoints.slice(-Math.min(10, this.dataPoints.length))
+    }
+
     if (visiblePoints.length < 2) return
+
+    // 按时间排序确保连续
+    visiblePoints.sort((a, b) => a.time - b.time)
 
     // 转换为屏幕坐标
     const screenPoints = visiblePoints.map(p => this.dataToScreen(p))
 
-    // 绘制平滑折线
+    // 绘制折线
     this.drawSmoothLine(screenPoints)
     
     // 绘制端点脉冲效果
@@ -317,18 +351,18 @@ export class ChartRenderer {
     const screenPos = this.dataToScreen(endPoint)
     const pulseState = this.pulseAnimation.getCurrentState()
 
-    // 外圈脉冲 - 使用线条颜色
+    // 外圈脉冲 - 使用线条颜色，减小尺寸
     const outerPulse = new PIXI.Graphics()
     outerPulse.beginFill(this.lineColor, pulseState.opacity * 0.3)
-    outerPulse.drawCircle(0, 0, 12 * pulseState.scale)
+    outerPulse.drawCircle(0, 0, 8 * pulseState.scale) // 从12减小到8
     outerPulse.endFill()
     outerPulse.x = screenPos.x
     outerPulse.y = screenPos.y
 
-    // 内圈核心 - 使用线条颜色
+    // 内圈核心 - 使用线条颜色，减小尺寸
     const innerCore = new PIXI.Graphics()
     innerCore.beginFill(this.lineColor, 0.9)
-    innerCore.drawCircle(0, 0, 6)
+    innerCore.drawCircle(0, 0, 4) // 从6减小到4
     innerCore.endFill()
     innerCore.x = screenPos.x
     innerCore.y = screenPos.y
