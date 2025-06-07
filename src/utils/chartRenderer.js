@@ -328,10 +328,14 @@ export class ChartRenderer {
     }
   }
 
-  // 绘制平滑折线
+  // 绘制折线
   drawSmoothLine(points) {
     if (points.length < 2) return
     
+    // 先绘制阴影区域
+    this.drawShadowArea(points)
+    
+    // 再绘制折线
     const line = new PIXI.Graphics()
     
     // 设置线条样式 - 棱角分明
@@ -344,6 +348,35 @@ export class ChartRenderer {
     }
 
     this.chartLayer.addChild(line)
+  }
+
+  // 绘制阴影区域
+  drawShadowArea(points) {
+    if (points.length < 2) return
+
+    const shadow = new PIXI.Graphics()
+    
+    // 设置填充颜色，与折线颜色一致，透明度0.2
+    shadow.beginFill(this.lineColor, 0.2)
+    
+    // 从第一个点开始
+    shadow.moveTo(points[0].x, points[0].y)
+    
+    // 连接所有折线点
+    for (let i = 1; i < points.length; i++) {
+      shadow.lineTo(points[i].x, points[i].y)
+    }
+    
+    // 连接到底部形成封闭区域
+    const bottomY = this.chartArea.y + this.chartArea.height
+    shadow.lineTo(points[points.length - 1].x, bottomY) // 最后一点到底部
+    shadow.lineTo(points[0].x, bottomY) // 底部连线
+    shadow.lineTo(points[0].x, points[0].y) // 回到起始点
+    
+    shadow.endFill()
+    
+    // 将阴影添加到图表层，在折线之前
+    this.chartLayer.addChild(shadow)
   }
 
   // 绘制端点脉冲效果

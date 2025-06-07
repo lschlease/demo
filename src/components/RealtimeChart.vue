@@ -25,7 +25,7 @@ export default {
     const dataPoints = ref([])
     const isGenerating = ref(false)
     const currentValue = ref(0)
-    const updateInterval = ref(2000)
+    const updateInterval = ref(500)
     let generationTimer = null
 
     // 图表配置
