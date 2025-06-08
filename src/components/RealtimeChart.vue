@@ -23,7 +23,6 @@ export default {
     const chartCanvas = ref(null)
     const dataGenerator = ref(null)
     const dataPoints = ref([])
-    const isGenerating = ref(false)
     const currentValue = ref(0)
     const updateInterval = ref(500)
     let generationTimer = null
@@ -34,24 +33,20 @@ export default {
     const chartOptions = ref({
       lineColor: 0x00D2FF,
       lineWidth: 1,
-      pointColor: 0xFF6B6B,
       maxDataPoints: 150
     })
 
     // 初始化数据生成器
     const initDataGenerator = () => {
       dataGenerator.value = new DataGenerator({
-        mode: 'sineWave',
-        baseValue: 40,    // 调整基准值到0-80的中点
-        amplitude: 35,    // 大幅增加振幅，让数据能覆盖0-80范围
-        frequency: 0.02,  // 降低频率，让波动更缓慢明显
-        noiseLevel: 8     // 增加噪声，让变化更随机
+        baseValue: 40,
+        amplitude: 35,
+        frequency: 0.02,
+        noiseLevel: 8
       })
 
       // 监听数据更新
       dataGenerator.value.onDataUpdate((dataPoint) => {
-        // 不再限制数据范围，让数据自由波动
-        
         dataPoints.value.push(dataPoint)
         currentValue.value = dataPoint.value
         
@@ -71,7 +66,6 @@ export default {
     const startGeneration = () => {
       if (generationTimer) return
       
-      isGenerating.value = true
       generationTimer = setInterval(() => {
         if (dataGenerator.value) {
           dataGenerator.value.generateNext()
@@ -85,7 +79,6 @@ export default {
         clearInterval(generationTimer)
         generationTimer = null
       }
-      isGenerating.value = false
     }
 
     // 响应式调整图表大小
@@ -105,7 +98,7 @@ export default {
       // 监听窗口大小变化
       window.addEventListener('resize', updateChartSize)
       
-      // 立即开始生成数据，无延迟
+      // 立即开始生成数据
       startGeneration()
     })
 

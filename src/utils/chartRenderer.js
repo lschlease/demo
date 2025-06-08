@@ -3,7 +3,7 @@
  */
 
 import * as PIXI from 'pixi.js'
-import { AnimationManager, PulseAnimation, BezierCurve, Easing } from './animationUtils.js'
+import { AnimationManager, PulseAnimation, Easing } from './animationUtils.js'
 
 export class ChartRenderer {
   constructor(container, options = {}) {
